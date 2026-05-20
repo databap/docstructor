@@ -28,3 +28,4 @@ docs/.doc_tool.runtime.json
 
 # Validation reports (do not commit)
 **/STRUCTURE_VALIDATION_REPORT_*.md
+.continue/
