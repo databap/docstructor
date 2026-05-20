@@ -52,18 +52,23 @@ python scripts/validate_docs_structure.py plan --projects .
 python scripts/validate_docs_structure.py apply --projects .
 ```
 
-## Veröffentlichung nach GitHub (SSH)
+## Veröffentlichung nach GitHub
 
 ```bash
 git init
 git add .
 git commit -m "chore: initialize Docstructor project"
 git branch -M main
-git remote add origin git@github.com:databap/docstructor.git
+git remote add origin https://github.com/databap/docstructor.git
 git push -u origin main
 ```
 
 Wenn `origin` schon existiert:
+```bash
+git remote set-url origin https://github.com/databap/docstructor.git
+```
+
+Optional mit SSH (wenn Port 22/443 in deinem Netzwerk erreichbar ist):
 ```bash
 git remote set-url origin git@github.com:databap/docstructor.git
 ```
