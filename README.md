@@ -58,9 +58,18 @@ python scripts/validate_docs_structure.py validate --projects .
 pytest -q
 ```
 
+### Pre-commit lokal ausführen
+```bash
+python -m pre_commit install
+python -m pre_commit run --all-files
+```
+
+Hinweis: In restriktiven Windows-Umgebungen kann `pre-commit.exe` durch Gruppenrichtlinien blockiert sein. In dem Fall funktioniert in der Regel der Aufruf über `python -m pre_commit`.
+
 ### Projektstruktur
 ```text
 .
+├── .pre-commit-config.yaml
 ├── .github/
 │   └── workflows/
 │       └── ci.yml

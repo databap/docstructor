@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: python-compile
+        name: Python compile check
+        entry: python -m compileall src tests scripts
+        language: system
+        pass_filenames: false
+      - id: pytest
+        name: Pytest
+        entry: python -m pytest -q tests/test_validate_docs_structure.py
+        language: system
+        pass_filenames: false
