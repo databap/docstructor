@@ -848,11 +848,14 @@ class DocStructureValidator:
 
         if self.git_repo:
             try:
+                source_rel = os.path.relpath(source, self.project_root)
+                target_rel = os.path.relpath(target, self.project_root)
+
                 overwrite_mode = target.exists()
                 cmd = ["git", "mv"]
                 if overwrite_mode:
                     cmd.append("-f")
-                cmd.extend([str(source), str(target)])
+                cmd.extend([source_rel, target_rel])
 
                 result = subprocess.run(
                     cmd,
@@ -864,7 +867,30 @@ class DocStructureValidator:
                     self.operation_log.append(f"MOVE git {source} -> {target}")
                     return "git"
 
-                stderr = result.stderr.strip()
+                stderr = (result.stderr or "").strip()
+                stderr_l = stderr.lower()
+
+                # In gemischten Repositories kann docs/ Dateien enthalten,
+                # die (noch) nicht getrackt sind. Dann ist git mv technisch
+                # nicht anwendbar; wir fallen kontrolliert auf shutil zurück.
+                untracked_indicators = [
+                    "not under version control",
+                    "did not match any files",
+                    "pathspec",
+                    "kein dateieintrag",
+                    "nicht unter versionskontrolle",
+                ]
+                if any(ind in stderr_l for ind in untracked_indicators):
+                    print(
+                        "WARN: Git-Repository erkannt, aber Quelle nicht versioniert. "
+                        "Nutze shutil.move für diese Datei."
+                    )
+                    shutil.move(str(source), str(target))
+                    self.operation_log.append(
+                        f"MOVE shutil(untracked) {source} -> {target} | stderr={stderr}"
+                    )
+                    return "shutil"
+
                 mode = "git mv -f" if overwrite_mode else "git mv"
                 raise RuntimeError(
                     f"{mode} failed: {source} -> {target} | stderr={stderr}"
