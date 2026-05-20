@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caliando.local/schemas/validate-docs-rules.schema.json",
+  "title": "validate_docs_structure rules",
+  "description": "Schema fuer docs/STRUCTURE_RULES.yaml",
+  "type": "object",
+  "required": [
+    "required_directories",
+    "allowed_root_files",
+    "categories",
+    "validation",
+    "reporting"
+  ],
+  "properties": {
+    "required_directories": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "allowed_root_files": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "categories": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "file_patterns": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "allow_nested_categories": { "type": "boolean" },
+          "is_container": { "type": "boolean" },
+          "language": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": ["require_lowercase_directories", "allow_nested_categories", "case_sensitive", "language"],
+      "properties": {
+        "require_lowercase_directories": { "type": "boolean" },
+        "allow_nested_categories": { "type": "boolean" },
+        "case_sensitive": { "type": "boolean" },
+        "language": { "type": "string" },
+        "language_scope": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "language_rules": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "min_chars": { "type": "integer", "minimum": 0 },
+              "min_marker_hits": { "type": "integer", "minimum": 0 },
+              "markers": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "reporting": {
+      "type": "object",
+      "required": ["auto_save_report", "report_location", "report_format"],
+      "properties": {
+        "auto_save_report": { "type": "boolean" },
+        "report_location": { "type": "string" },
+        "report_format": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

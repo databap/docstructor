@@ -1,0 +1,229 @@
+# 📋 Docstructor Rules
+# 
+# Diese Datei definiert die Struktur-Regeln für docs/ Verzeichnisse.
+# Sie wird vom Docstructor-Script validate_docs_structure.py verwendet.
+# Standardmäßig wird sie gegen docs/process/VALIDATE_DOCS_JSON_SCHEMA.json validiert.
+#
+# Version: 2.0 (Bugs gefixt: Root-Scan, category-flags, archive-semantik)
+# Updated: 19. Mai 2026
+
+# ============================================================================
+# TEIL 1: REQUIRED STRUCTURE
+# ============================================================================
+
+# Verzeichnisse die in jedem docs/ Projekt existieren MÜSSEN
+required_directories:
+  - adr
+  - reviews
+  - architecture
+  - deployment
+  - manual
+  - archive
+  - process
+  - prompts
+
+# Markdowndateien + andere Dateien die im docs/ Root erlaubt sind
+# WICHTIG: Bug #1 Fix — alle Dateitypen scannen, nicht nur *.md
+allowed_root_files:
+  - README.md
+  - STRUCTURE_RULES.yaml
+  - DOCUMENTATION_CONSISTENCY_REPORT.md
+
+
+# ============================================================================
+# TEIL 2: KATEGORIE-DEFINITIONEN
+# ============================================================================
+
+# Kategorisierung von Dateien nach Pfaden (für Auto-Archivierung)
+categories:
+  adr:
+    description: "Architecture Decision Records (ADR-0001, ADR-0002, ...)"
+    file_patterns:
+      - "adr-*.md"
+      - "ADR-*.md"
+      - "*-ADR-*.md"
+    allow_nested_categories: true  # Bug #2 Fix: explizites Flag pro Kategorie
+    language: de
+    
+  reviews:
+    description: "Architektur-Reviews & Validierungen"
+    file_patterns:
+      - "*_REVIEW_*.md"
+      - "*_VALIDATION_*.md"
+      - "*_TEST_*.md"
+    allow_nested_categories: true
+    language: de
+    
+  architecture:
+    description: "Planung, Design, Phasen-Reports"
+    file_patterns:
+      - "*ARCHITECTURE*.md"
+      - "*_PLAN*.md"
+      - "*_SUMMARY*.md"
+      - "PHASE_*.md"
+    allow_nested_categories: true
+    language: de
+    
+  deployment:
+    description: "Deployment-Guides, Infrastruktur"
+    file_patterns:
+      - "*DEPLOYMENT*.md"
+      - "*DOCKER*.md"
+      - "*SYSTEMD*.md"
+    allow_nested_categories: true
+    language: en
+    
+  manual:
+    description: "Benutzer-Dokumentation, Guides"
+    file_patterns:
+      - "*GUIDE*.md"
+      - "QUICKSTART*.md"
+      - "*INTEGRATION*.md"
+    allow_nested_categories: true
+    language: en
+    
+  process:
+    description: "Prozess-Dokumentation, Meetings, Retros"
+    file_patterns:
+      - "*PROCESS*.md"
+      - "*MEETING*.md"
+      - "*RETRO*.md"
+    allow_nested_categories: true
+    language: de
+    
+  prompts:
+    description: "Prompt-Designs, Templates"
+    file_patterns:
+      - "*PROMPT*.md"
+      - "*TEMPLATE*.md"
+    allow_nested_categories: true
+    language: en
+
+  # Bug #5 v2 Fix: archive ist semantisch ein CONTAINER, keine normale Kategorie
+  archive:
+    description: "Archiv-Container für alte Dokumentation (Struktur: archive/<kategorie>/)"
+    is_container: true              # Container-Flag: kein normaler Ordner, nur Unterordner
+    allow_nested_categories: true   # Archive hat beliebig viele Unterordner
+    language: skip                  # Sprachvalidierung in archive nicht nötig (gemischtes Alter)
+
+  archive_error:
+    description: "Automatische Fehlerablage für ungültige Dateien im archive-Container"
+    is_container: true
+    allow_nested_categories: true
+    language: skip
+
+
+# ============================================================================
+# TEIL 3: VALIDIERUNGS-REGELN (Global)
+# ============================================================================
+
+validation:
+  require_lowercase_directories: true  # Alle Ordnernamen müssen lowercase sein
+  allow_nested_categories: true        # Globaler Default/Fallback; Kategorie-Flag kann explizit true/false überschreiben
+  case_sensitive: false                # Dateiname-Matching ist case-INSENSITIVE
+  
+  # Bug #3 Fix: Sprachvalidierung mit Unicode-Normalisierung
+  language: de                         # Default-Sprache für __root__
+  
+  language_scope:
+    __root__: de                       # Root-Dateien MÜSSEN deutsch sein (soft rule)
+    adr: de                            # ADRs MÜSSEN deutsch sein (soft rule, aber strict für diese Org)
+    reviews: de                        # Reviews MÜSSEN deutsch sein
+    architecture: de                   # Architecture MUSS deutsch sein
+    process: de                        # Process MUSS deutsch sein
+    deployment: en                     # Deployment MUSS englisch sein (DevOps international)
+    manual: en                         # Manual MUSS englisch sein (Enduser international)
+    prompts: en                        # Prompts MUSS englisch sein
+    archive: skip                      # archive: keine Sprachprüfung (gemischtes Alter, nicht relevant)
+    archive_error: skip                # archive_error: keine Sprachprüfung (Fehlerablage)
+  
+  # Bug #3 Fix: Unicode-Normalisierung (NFC = Composed Form)
+  # Diese Marker werden mit unicodedata.normalize('NFC') verglichen
+  language_rules:
+    de:
+      min_chars: 120                   # Mindestens 120 Zeichen
+      min_marker_hits: 2               # Mindestens 2 Marker müssen treffen (vorher: 1, zu lax)
+      markers:
+        - " und "                      # Häufige dt. Konjunktion
+        - " der "                      # Häufiger dt. Artikel
+        - " die "                      # Häufiger dt. Artikel
+        - " das "                      # Häufiger dt. Artikel
+        - " mit "                      # Häufige dt. Präposition
+        - " für "                      # Häufige dt. Präposition
+        - " über "                     # Häufige dt. Präposition (mit Umlaut)
+        - "nicht"                      # Häufiges dt. Negation-Wort
+        - "soll"                       # Modal-Verb
+        - "wird"                       # Häufiges Hilfs-Verb
+        - "ä"                          # Umlaut (mit NFC-Normalisierung stabil)
+        - "ö"                          # Umlaut
+        - "ü"                          # Umlaut
+        - "ß"                          # Deutsches ß
+        - "dokumentation"              # Domain-spezifisch
+        - "verzeichnis"                # Domain-spezifisch
+        - "validierung"                # Domain-spezifisch
+    en:
+      min_chars: 120
+      min_marker_hits: 2               # Auch strikte auf 2 erhöht
+      markers:
+        - " and "
+        - " the "
+        - " with "
+        - " should "
+        - " will "
+        - " for "
+        - " to "
+        - "documentation"
+        - "validation"
+        - "directory"
+        - "guide"
+        - "setup"
+        - "deployment"
+
+
+# ============================================================================
+# TEIL 4: REPORTING
+# ============================================================================
+
+reporting:
+  auto_save_report: false             # true = Report wird automatisch als Markdown gespeichert
+  report_location: "docs"             # Report wird in docs/ abgelegt
+  report_format: "STRUCTURE_VALIDATION_REPORT_{timestamp}.md"  # Timestamp wird eingefügt
+
+
+# ============================================================================
+# DOKUMENTATION DER BUGS UND FIXES
+# ============================================================================
+
+# BUG FIXES (v2.0):
+# 
+# Bug #1: allowed_root_files prüft nur *.md
+#   → FIX: Validator scannt alle Dateien im docs-Root, nicht nur *.md
+#   → Impact: STRUCTURE_RULES.yaml wird jetzt korrekt validiert
+#
+# Bug #2: allow_nested_categories ist doppelt definiert, aber nur global genutzt
+#   → FIX: Jede Kategorie hat jetzt explizit allow_nested_categories
+#   → Impact: archive kann anders konfiguriert werden als z.B. adr
+#
+# Bug #5: archive ist semantisch Container, wird aber wie Kategorie behandelt
+#   → FIX: Neues Flag: is_container
+#   → Impact: Validator prüft, dass archive/ keine Root-Dateien enthält
+#
+# Bug #3: Unicode-Normalisierung in Sprachvalidierung fehlte
+#   → FIX: Validator nutzt unicodedata.normalize('NFC')
+#   → Impact: Marker wie "über" treffen jetzt zuverlässig
+#
+# Bug #4: Performance — komplette Dateien gelesen
+#   → FIX: Validator liest nur erste 8 KB für Language-Check
+#   → Impact: Große Dateien verlangsamen nicht mehr
+#
+# Bug #6: CLI dry-run/apply Logik widersprüchlich
+#   → FIX: Subcommands eingeführt (`validate`, `plan`, `apply`, `report`) + Legacy `--apply`
+#   → Impact: CLI ist eindeutig, CI/MCP über `--json --ci` stabil integrierbar
+#
+# Bug #7: Locking nicht atomar
+#   → FIX: os.open(..., os.O_CREAT | os.O_EXCL)
+#   → Impact: Keine Race-Condition möglich
+#
+# Bug #8: Rollback-Konsistenz
+#   → FIX: Pre-Check vor Move (source exists, parent writable wenn vorhanden, target darf existieren)
+#   → Impact: Overwrite-Semantik ist konsistent; in Git-Repos wird Overwrite strikt via `git mv -f` erzwungen

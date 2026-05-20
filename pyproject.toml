@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docstructor"
+version = "2.2.0"
+description = "Documentation Structure Validator & Reorganizer"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Docstructor Contributors" }]
+dependencies = [
+  "PyYAML>=6.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0"
+]
+
+[project.scripts]
+docstructor = "validate_docs_structure:main"
+
+[tool.setuptools]
+py-modules = ["validate_docs_structure"]
+
+[tool.setuptools.package-dir]
+"" = "src"
