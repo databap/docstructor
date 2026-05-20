@@ -4,6 +4,9 @@ __pycache__/
 *.pyo
 *.pyd
 
+# SSH
+.ssh/
+
 # Virtual environments
 .venv/
 venv/
