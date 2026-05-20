@@ -156,7 +156,7 @@ def test_root_file_to_archive_category(temp_project):
     print("DEBUG: proposed_moves:", targets)
     assert any("archive/architecture" in t.replace("\\", "/") and "TEST_ARCHITECTURE.md" in t for t in targets)
 
-# Test: Datei im docs-Root ohne Kategorie landet in archive/
+# Test: Datei im docs-Root ohne Kategorie landet in archive/misc/
 def test_root_file_to_archive_default(temp_project):
     docs_dir = Path(temp_project) / "docs"
     write_rules(docs_dir)
@@ -168,7 +168,37 @@ def test_root_file_to_archive_default(temp_project):
     validator.generate_moves()
     targets = [str(t[1]) for t in validator.proposed_moves]
     print("DEBUG: proposed_moves:", targets)
-    assert any(t.replace("\\", "/").endswith("archive/UNMATCHED_FILE.md") for t in targets)
+    assert any(t.replace("\\", "/").endswith("archive/misc/UNMATCHED_FILE.md") for t in targets)
+
+
+def test_untracked_git_fallback_warns_once_and_summarizes(monkeypatch, temp_project, capsys):
+    docs_dir = Path(temp_project) / "docs"
+    write_rules(docs_dir)
+
+    file_a = docs_dir / "UNMATCHED_A.md"
+    file_b = docs_dir / "UNMATCHED_B.md"
+    file_a.write_text("A")
+    file_b.write_text("B")
+
+    validator = DocStructureValidator(temp_project, dry_run=False)
+    validator.load_rules()
+    validator.git_repo = True
+
+    def fake_run(*args, **kwargs):
+        class Result:
+            returncode = 1
+            stderr = "fatal: not under version control"
+        return Result()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    validator.validate_structure()
+    validator.generate_moves()
+    assert validator.apply_reorganization() is True
+
+    captured = capsys.readouterr().out
+    assert captured.count("WARN: Git-Repository erkannt, aber Quelle nicht versioniert") == 1
+    assert "INFO: 2 unversionierte Datei(en) wurden per shutil.move verschoben." in captured
 
 # Test: Datei, die zu reviews passt, wird nach archive/reviews verschoben
 def test_root_file_to_archive_reviews(temp_project):

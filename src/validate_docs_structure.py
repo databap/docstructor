@@ -138,6 +138,8 @@ class DocStructureValidator:
         self.changed_only = changed_only
         self.checked_files: List[str] = []
         self.last_error_type: Optional[str] = None
+        self._untracked_shutil_fallback_count: int = 0
+        self._untracked_shutil_fallback_warned: bool = False
 
         # Feature 2: Session-Log fuer Nachvollziehbarkeit/Rollback
         self.operation_log: List[str] = []
@@ -652,6 +654,8 @@ class DocStructureValidator:
 
         print(f"\nReorganisiere {len(self.proposed_moves)} Dateien...")
         applied_moves: List[Tuple[Path, Path]] = []
+        self._untracked_shutil_fallback_count = 0
+        self._untracked_shutil_fallback_warned = False
 
         for source, target in self.proposed_moves:
             source = self._secure_path_in_project(source)
@@ -672,6 +676,13 @@ class DocStructureValidator:
                 print(f"ERROR: Move fehlgeschlagen: {e}")
                 self._rollback_moves(applied_moves)
                 return False
+
+        if self._untracked_shutil_fallback_count > 0:
+            print(
+                "INFO: "
+                f"{self._untracked_shutil_fallback_count} unversionierte Datei(en) "
+                "wurden per shutil.move verschoben."
+            )
 
         return True
 
@@ -743,7 +754,9 @@ class DocStructureValidator:
                 if archive_category and archive_category != "archive":
                     archive_target = self.docs_dir / "archive" / archive_category / file_name
                 else:
-                    archive_target = self.docs_dir / "archive" / file_name
+                    # Unmatched-Dateien nicht in archive/-Root ablegen,
+                    # damit Folge-Läufe idempotent bleiben.
+                    archive_target = self.docs_dir / "archive" / "misc" / file_name
                 self.violations.append(
                     {
                         "type": "file_in_wrong_location",
@@ -881,10 +894,13 @@ class DocStructureValidator:
                     "nicht unter versionskontrolle",
                 ]
                 if any(ind in stderr_l for ind in untracked_indicators):
-                    print(
-                        "WARN: Git-Repository erkannt, aber Quelle nicht versioniert. "
-                        "Nutze shutil.move für diese Datei."
-                    )
+                    self._untracked_shutil_fallback_count += 1
+                    if not self._untracked_shutil_fallback_warned:
+                        print(
+                            "WARN: Git-Repository erkannt, aber Quelle nicht versioniert. "
+                            "Nutze shutil.move; weitere gleichartige Fälle werden zusammengefasst."
+                        )
+                        self._untracked_shutil_fallback_warned = True
                     shutil.move(str(source), str(target))
                     self.operation_log.append(
                         f"MOVE shutil(untracked) {source} -> {target} | stderr={stderr}"
